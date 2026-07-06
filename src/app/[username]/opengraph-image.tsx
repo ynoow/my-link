@@ -5,6 +5,8 @@ import { db } from "@/lib/firebase";
 export const alt = 'MyLink Profile';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function Image({ params }: { params: { username: string } }) {
   let user = {
