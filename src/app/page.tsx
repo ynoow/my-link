@@ -56,9 +56,18 @@ export default function Page() {
   const [inlineTitle, setInlineTitle] = useState("");
   const [inlineUrl, setInlineUrl] = useState("");
 
+  const [isProfileInlineEdit, setIsProfileInlineEdit] = useState(false);
+  const [inlineTitleError, setInlineTitleError] = useState("");
+  const [inlineUrlError, setInlineUrlError] = useState("");
+  const [titleError, setTitleError] = useState("");
+  const [urlError, setUrlError] = useState("");
+  const [linkToDelete, setLinkToDelete] = useState<string | null>(null);
+
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
   const [username, setUsername] = useState("");
+
+  const validateUrl = (u: string) => /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(u);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((u) => {
@@ -124,6 +133,24 @@ export default function Page() {
   const handleAddLink = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    
+    let hasError = false;
+    if (!title.trim()) {
+      setTitleError("링크 이름을 입력해주세요.");
+      hasError = true;
+    } else {
+      setTitleError("");
+    }
+    
+    if (!url.trim() || !validateUrl(url)) {
+      setUrlError("유효한 URL을 입력해주세요.");
+      hasError = true;
+    } else {
+      setUrlError("");
+    }
+    
+    if (hasError) return;
+
     try {
       await addDoc(collection(db, "users", user.uid, "links"), {
         userId: user.uid,
@@ -135,6 +162,8 @@ export default function Page() {
       setIsAddOpen(false);
       setTitle("");
       setUrl("");
+      setTitleError("");
+      setUrlError("");
       toast.success("링크가 추가되었습니다.");
     } catch (err) {
       toast.error("링크 추가 실패");
@@ -148,32 +177,52 @@ export default function Page() {
   };
 
   const handleInlineSave = async (id: string) => {
+    let hasError = false;
+    if (!inlineTitle.trim()) {
+      setInlineTitleError("링크 이름을 입력해주세요.");
+      hasError = true;
+    } else {
+      setInlineTitleError("");
+    }
+    
+    if (!inlineUrl.trim() || !validateUrl(inlineUrl)) {
+      setInlineUrlError("유효한 URL을 입력해주세요.");
+      hasError = true;
+    } else {
+      setInlineUrlError("");
+    }
+    
+    if (hasError) return;
+
     try {
       await updateDoc(doc(db, "users", user!.uid, "links", id), {
         title: inlineTitle,
         url: inlineUrl.startsWith("http") ? inlineUrl : `https://${inlineUrl}`,
       });
       setInlineEditId(null);
+      setInlineTitleError("");
+      setInlineUrlError("");
       toast.success("링크가 수정되었습니다.");
     } catch (err) {
       toast.error("링크 수정 실패");
     }
   };
 
-  const handleDeleteLink = async (id: string) => {
-    if (!confirm("정말 삭제하시겠습니까?")) return;
+  const executeDeleteLink = async () => {
+    if (!linkToDelete) return;
     try {
-      await deleteDoc(doc(db, "users", user.uid, "links", id));
+      await deleteDoc(doc(db, "users", user!.uid, "links", linkToDelete));
       toast.success("링크가 삭제되었습니다.");
     } catch (err) {
       toast.error("링크 삭제 실패");
     }
+    setLinkToDelete(null);
   };
 
 
 
-  const handleUpdateProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleUpdateProfile = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!user) return;
     try {
       await setDoc(doc(db, "users", user.uid), {
@@ -184,6 +233,7 @@ export default function Page() {
         updatedAt: serverTimestamp()
       }, { merge: true });
       setIsProfileOpen(false);
+      setIsProfileInlineEdit(false);
       toast.success("프로필이 업데이트되었습니다.");
     } catch (err) {
       toast.error("프로필 업데이트 실패");
@@ -286,16 +336,50 @@ export default function Page() {
               </div>
 
               {/* Profile Text */}
-              <div className="space-y-3">
-                <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">
-                  {profile?.displayName || user.displayName || "User"}
-                </h1>
-                <p className="text-lg text-primary font-medium flex items-center gap-1.5">
-                  @{profile?.username || user.email?.split('@')[0]}
-                </p>
-                <p className="text-base md:text-lg text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed max-w-xs mt-4">
-                  {profile?.bio || "나를 소개하는 한 줄을 작성해보세요."}
-                </p>
+              <div className="space-y-3 relative group">
+                {!isProfileInlineEdit && (
+                  <Button variant="ghost" size="icon" onClick={() => {
+                    setDisplayName(profile?.displayName || user.displayName || "");
+                    setUsername(profile?.username || user.email?.split('@')[0] || "");
+                    setBio(profile?.bio || "");
+                    setIsProfileInlineEdit(true);
+                  }} className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                    <Pencil className="w-4 h-4 text-zinc-500" />
+                  </Button>
+                )}
+                
+                {isProfileInlineEdit ? (
+                  <div className="space-y-4 bg-zinc-50 dark:bg-zinc-800/50 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-700/50">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-zinc-500">표시명</Label>
+                      <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="h-9 font-bold bg-white dark:bg-zinc-900" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-zinc-500">아이디 (@)</Label>
+                      <Input value={username} onChange={(e) => setUsername(e.target.value)} className="h-9 text-primary font-medium bg-white dark:bg-zinc-900" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-zinc-500">소개글</Label>
+                      <Input value={bio} onChange={(e) => setBio(e.target.value)} className="h-9 bg-white dark:bg-zinc-900" />
+                    </div>
+                    <div className="flex justify-end gap-2 pt-2">
+                      <Button size="sm" variant="outline" onClick={() => setIsProfileInlineEdit(false)}>취소</Button>
+                      <Button size="sm" onClick={handleUpdateProfile}>저장</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50 pr-8">
+                      {profile?.displayName || user.displayName || "User"}
+                    </h1>
+                    <p className="text-lg text-primary font-medium flex items-center gap-1.5">
+                      @{profile?.username || user.email?.split('@')[0]}
+                    </p>
+                    <p className="text-base md:text-lg text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed max-w-xs mt-4">
+                      {profile?.bio || "나를 소개하는 한 줄을 작성해보세요."}
+                    </p>
+                  </>
+                )}
                 
                 <div className="pt-4 flex flex-col gap-3">
                   <div className="flex items-center gap-3 text-sm text-zinc-500 dark:text-zinc-400 font-medium">
@@ -348,17 +432,20 @@ export default function Page() {
                               <div className="flex flex-col gap-2 w-full">
                                 <Input 
                                   value={inlineTitle} 
-                                  onChange={(e) => setInlineTitle(e.target.value)} 
-                                  className="h-9 w-full bg-white/60 dark:bg-zinc-900/60 font-semibold" 
+                                  onChange={(e) => { setInlineTitle(e.target.value); setInlineTitleError(""); }} 
+                                  className={`h-9 w-full bg-white/60 dark:bg-zinc-900/60 font-semibold ${inlineTitleError ? 'border-red-500' : ''}`} 
                                   placeholder="링크 제목"
                                   autoFocus
                                 />
+                                {inlineTitleError && <span className="text-xs text-red-500 mt-1">{inlineTitleError}</span>}
+                                
                                 <Input 
                                   value={inlineUrl} 
-                                  onChange={(e) => setInlineUrl(e.target.value)} 
-                                  className="h-8 w-full text-xs text-zinc-500 bg-white/60 dark:bg-zinc-900/60" 
+                                  onChange={(e) => { setInlineUrl(e.target.value); setInlineUrlError(""); }} 
+                                  className={`h-8 w-full text-xs text-zinc-500 bg-white/60 dark:bg-zinc-900/60 ${inlineUrlError ? 'border-red-500' : ''}`} 
                                   placeholder="https://..."
                                 />
+                                {inlineUrlError && <span className="text-xs text-red-500 mt-1">{inlineUrlError}</span>}
                               </div>
                               <div className="flex items-center justify-end gap-2 w-full">
                                 <Button size="sm" variant="ghost" onClick={() => setInlineEditId(null)} className="h-8 text-xs">취소</Button>
@@ -382,7 +469,7 @@ export default function Page() {
                                   <Button variant="ghost" size="icon" onClick={(e) => { e.preventDefault(); startInlineEdit(link); }} className="h-9 w-9 text-zinc-500 hover:text-primary hover:bg-primary/10">
                                     <Pencil className="w-4 h-4" />
                                   </Button>
-                                  <Button variant="ghost" size="icon" onClick={(e) => { e.preventDefault(); handleDeleteLink(link.id); }} className="h-9 w-9 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50">
+                                  <Button variant="ghost" size="icon" onClick={(e) => { e.preventDefault(); setLinkToDelete(link.id); }} className="h-9 w-9 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50">
                                     <Trash2 className="w-4 h-4" />
                                   </Button>
                                 </div>
@@ -427,11 +514,13 @@ export default function Page() {
           <form onSubmit={handleAddLink} className="space-y-4 pt-4">
             <div className="space-y-2">
               <Label>제목 (Title)</Label>
-              <Input value={title} onChange={e => setTitle(e.target.value)} required placeholder="예: 내 블로그" />
+              <Input value={title} onChange={e => { setTitle(e.target.value); setTitleError(""); }} placeholder="예: 내 블로그" className={titleError ? "border-red-500" : ""} />
+              {titleError && <p className="text-xs text-red-500">{titleError}</p>}
             </div>
             <div className="space-y-2">
               <Label>URL</Label>
-              <Input value={url} onChange={e => setUrl(e.target.value)} required placeholder="예: https://example.com" />
+              <Input value={url} onChange={e => { setUrl(e.target.value); setUrlError(""); }} placeholder="예: https://example.com" className={urlError ? "border-red-500" : ""} />
+              {urlError && <p className="text-xs text-red-500">{urlError}</p>}
             </div>
             <Button type="submit" className="w-full">추가하기</Button>
           </form>
@@ -461,6 +550,22 @@ export default function Page() {
             </div>
             <Button type="submit" className="w-full">프로필 저장</Button>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!linkToDelete} onOpenChange={(open) => !open && setLinkToDelete(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>링크 삭제</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-zinc-500 text-sm">정말 이 링크를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.</p>
+          </div>
+          <div className="flex justify-end gap-3 mt-4">
+            <Button variant="outline" onClick={() => setLinkToDelete(null)}>취소</Button>
+            <Button variant="destructive" onClick={executeDeleteLink}>삭제</Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
