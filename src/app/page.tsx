@@ -56,7 +56,8 @@ export default function Page() {
   const [inlineTitle, setInlineTitle] = useState("");
   const [inlineUrl, setInlineUrl] = useState("");
 
-  const [isProfileInlineEdit, setIsProfileInlineEdit] = useState(false);
+  const [isUsernameEditing, setIsUsernameEditing] = useState(false);
+  const [isBioEditing, setIsBioEditing] = useState(false);
   const [inlineTitleError, setInlineTitleError] = useState("");
   const [inlineUrlError, setInlineUrlError] = useState("");
   const [titleError, setTitleError] = useState("");
@@ -226,14 +227,15 @@ export default function Page() {
     if (!user) return;
     try {
       await setDoc(doc(db, "users", user.uid), {
-        displayName,
+        displayName: profile?.displayName || user.displayName || "User", // displayName is no longer updatable by user
         bio,
         username,
         photoURL: user.photoURL || "",
         updatedAt: serverTimestamp()
       }, { merge: true });
       setIsProfileOpen(false);
-      setIsProfileInlineEdit(false);
+      setIsUsernameEditing(false);
+      setIsBioEditing(false);
       toast.success("프로필이 업데이트되었습니다.");
     } catch (err) {
       toast.error("프로필 업데이트 실패");
@@ -258,12 +260,12 @@ export default function Page() {
     <div className="flex flex-col md:flex-row min-h-svh bg-zinc-50 dark:bg-zinc-950 font-sans selection:bg-primary/30">
       {user ? (
         <>
-          {/* Header for Mobile/Desktop */}
-          <div className="absolute top-4 right-4 z-50 flex items-center gap-3">
+          {/* Header specific to small screens showing the public link */}
+          <div className="absolute top-4 right-4 z-50 hidden md:flex items-center gap-3">
             <Button 
               variant="outline" 
               size="sm" 
-              className="hidden sm:flex items-center gap-2 font-medium bg-white/50 dark:bg-zinc-900/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 backdrop-blur-md border-zinc-200/60 dark:border-zinc-800/60 shadow-sm"
+              className="flex items-center gap-2 font-medium bg-white/50 dark:bg-zinc-900/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 backdrop-blur-md border-zinc-200/60 dark:border-zinc-800/60 shadow-sm"
               onClick={() => {
                 const urlUsername = profile?.username || (user.email ? user.email.split('@')[0] : "user");
                 window.open(`/${urlUsername}`, '_blank');
@@ -272,50 +274,10 @@ export default function Page() {
               <LinkIcon className="w-3.5 h-3.5" />
               내 페이지 보기
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="rounded-full shadow-sm bg-white/50 dark:bg-zinc-900/50 backdrop-blur-md border-zinc-200/60 dark:border-zinc-800/60 hover:ring-2 hover:ring-primary/50 transition-all">
-                  <Avatar className="w-8 h-8 cursor-pointer">
-                    <AvatarImage src={user.photoURL || undefined} />
-                    <AvatarFallback className="font-bold text-zinc-700 dark:text-zinc-300">
-                      {profile?.displayName?.charAt(0) || user.displayName?.charAt(0) || "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 mt-1 rounded-xl shadow-xl border-zinc-200/60 dark:border-zinc-800/60 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl">
-                <DropdownMenuLabel className="flex flex-col gap-1.5 p-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-sm truncate pr-2 text-zinc-900 dark:text-zinc-100">
-                      {profile?.displayName || user.displayName || "User"}
-                    </span>
-                  </div>
-                  <span className="text-xs text-zinc-500 font-medium truncate">
-                    {user.email}
-                  </span>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-zinc-200/60 dark:bg-zinc-800/60" />
-                <DropdownMenuItem onClick={() => setIsProfileOpen(true)} className="cursor-pointer py-2.5 focus:bg-zinc-100 dark:focus:bg-zinc-800 rounded-md m-1">
-                  <Settings className="w-4 h-4 mr-2" />
-                  프로필 편집
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild className="cursor-pointer py-2.5 focus:bg-zinc-100 dark:focus:bg-zinc-800 rounded-md m-1">
-                  <Link href="/stats">
-                    <ChartBar className="w-4 h-4 mr-2" />
-                    통계 대시보드
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-zinc-200/60 dark:bg-zinc-800/60" />
-                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer py-2.5 text-red-500 focus:text-red-500 focus:bg-red-50 dark:focus:bg-red-950/50 rounded-md m-1">
-                  <LogOut className="w-4 h-4 mr-2" />
-                  로그아웃
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
 
           {/* Left Column: Fixed Profile Section */}
-          <div className="w-full md:w-[350px] lg:w-[420px] md:h-screen md:sticky top-0 bg-white dark:bg-zinc-900 border-b md:border-b-0 md:border-r border-zinc-200 dark:border-zinc-800 flex flex-col justify-center p-8 md:p-12 relative overflow-hidden z-10 shadow-sm md:shadow-none">
+          <div className="w-full md:w-[350px] lg:w-[420px] md:h-screen md:sticky top-0 bg-white dark:bg-zinc-900 border-b md:border-b-0 md:border-r border-zinc-200 dark:border-zinc-800 flex flex-col justify-center p-8 md:p-12 relative overflow-y-auto z-10 shadow-sm md:shadow-none">
             {/* Subtle decorative background gradient */}
             <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-br from-primary/10 to-transparent opacity-50 pointer-events-none -z-10" />
 
@@ -336,62 +298,114 @@ export default function Page() {
               </div>
 
               {/* Profile Text */}
-              <div className="space-y-3 relative group">
-                {!isProfileInlineEdit && (
-                  <Button variant="ghost" size="icon" onClick={() => {
-                    setDisplayName(profile?.displayName || user.displayName || "");
-                    setUsername(profile?.username || user.email?.split('@')[0] || "");
-                    setBio(profile?.bio || "");
-                    setIsProfileInlineEdit(true);
-                  }} className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                    <Pencil className="w-4 h-4 text-zinc-500" />
-                  </Button>
-                )}
+              <div className="space-y-4">
+                <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50 pr-8">
+                  {profile?.displayName || user.displayName || "User"}
+                </h1>
                 
-                {isProfileInlineEdit ? (
-                  <div className="space-y-4 bg-zinc-50 dark:bg-zinc-800/50 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-700/50">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-zinc-500">표시명</Label>
-                      <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="h-9 font-bold bg-white dark:bg-zinc-900" />
-                    </div>
-                    <div className="space-y-1.5">
+                {/* Username */}
+                <div className="group relative">
+                  {isUsernameEditing ? (
+                    <div className="flex flex-col gap-2 bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-xl border border-zinc-200 dark:border-zinc-700/50">
                       <Label className="text-xs font-semibold text-zinc-500">아이디 (@)</Label>
-                      <Input value={username} onChange={(e) => setUsername(e.target.value)} className="h-9 text-primary font-medium bg-white dark:bg-zinc-900" />
+                      <Input value={username} onChange={(e) => setUsername(e.target.value)} className="h-8 text-primary font-medium bg-white dark:bg-zinc-900" />
+                      <div className="flex justify-end gap-2">
+                        <Button size="sm" variant="ghost" onClick={() => setIsUsernameEditing(false)} className="h-7 text-xs">취소</Button>
+                        <Button size="sm" onClick={handleUpdateProfile} className="h-7 text-xs">저장</Button>
+                      </div>
                     </div>
-                    <div className="space-y-1.5">
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <p className="text-lg text-primary font-medium flex items-center gap-1.5">
+                        @{profile?.username || user.email?.split('@')[0]}
+                      </p>
+                      <Button variant="ghost" size="icon" onClick={() => {
+                        setUsername(profile?.username || user.email?.split('@')[0] || "");
+                        setIsUsernameEditing(true);
+                        setIsBioEditing(false);
+                      }} className="w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Pencil className="w-3.5 h-3.5 text-zinc-400" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Bio */}
+                <div className="group relative">
+                  {isBioEditing ? (
+                    <div className="flex flex-col gap-2 bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-xl border border-zinc-200 dark:border-zinc-700/50 mt-2">
                       <Label className="text-xs font-semibold text-zinc-500">소개글</Label>
-                      <Input value={bio} onChange={(e) => setBio(e.target.value)} className="h-9 bg-white dark:bg-zinc-900" />
+                      <Input value={bio} onChange={(e) => setBio(e.target.value)} className="h-8 bg-white dark:bg-zinc-900" />
+                      <div className="flex justify-end gap-2">
+                        <Button size="sm" variant="ghost" onClick={() => setIsBioEditing(false)} className="h-7 text-xs">취소</Button>
+                        <Button size="sm" onClick={handleUpdateProfile} className="h-7 text-xs">저장</Button>
+                      </div>
                     </div>
-                    <div className="flex justify-end gap-2 pt-2">
-                      <Button size="sm" variant="outline" onClick={() => setIsProfileInlineEdit(false)}>취소</Button>
-                      <Button size="sm" onClick={handleUpdateProfile}>저장</Button>
+                  ) : (
+                    <div className="flex items-start gap-2">
+                      <p className="text-base md:text-lg text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed max-w-xs">
+                        {profile?.bio || "나를 소개하는 한 줄을 작성해보세요."}
+                      </p>
+                      <Button variant="ghost" size="icon" onClick={() => {
+                        setBio(profile?.bio || "");
+                        setIsBioEditing(true);
+                        setIsUsernameEditing(false);
+                      }} className="w-6 h-6 mt-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                        <Pencil className="w-3.5 h-3.5 text-zinc-400" />
+                      </Button>
                     </div>
-                  </div>
-                ) : (
-                  <>
-                    <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50 pr-8">
-                      {profile?.displayName || user.displayName || "User"}
-                    </h1>
-                    <p className="text-lg text-primary font-medium flex items-center gap-1.5">
-                      @{profile?.username || user.email?.split('@')[0]}
-                    </p>
-                    <p className="text-base md:text-lg text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed max-w-xs mt-4">
-                      {profile?.bio || "나를 소개하는 한 줄을 작성해보세요."}
-                    </p>
-                  </>
-                )}
+                  )}
+                </div>
                 
-                <div className="pt-4 flex flex-col gap-3">
+                <div className="pt-4 flex flex-col gap-3 w-full">
                   <div className="flex items-center gap-3 text-sm text-zinc-500 dark:text-zinc-400 font-medium">
                     <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300">
                       <MapPin className="w-4 h-4" />
                     </div>
                     <span>Seoul, South Korea</span>
                   </div>
-                  <Button onClick={handleCopyLink} variant="outline" className="gap-2 rounded-full shadow-sm w-full md:w-auto mt-2">
+                  <Button onClick={handleCopyLink} variant="outline" className="gap-2 rounded-xl shadow-sm w-full mt-2">
                     <Copy className="w-4 h-4" />
                     내 링크 복사하기
                   </Button>
+                  
+                  {/* Dropdown Menu Trigger in Profile Section */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="secondary" className="gap-2 rounded-xl shadow-sm w-full font-semibold">
+                        <Settings className="w-4 h-4" />
+                        계정 관리 및 통계
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="center" className="w-64 mt-1 rounded-xl shadow-xl border-zinc-200/60 dark:border-zinc-800/60 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl">
+                      <DropdownMenuLabel className="flex flex-col gap-1.5 p-3">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-sm truncate pr-2 text-zinc-900 dark:text-zinc-100">
+                            {profile?.displayName || user.displayName || "User"}
+                          </span>
+                        </div>
+                        <span className="text-xs text-zinc-500 font-medium truncate">
+                          {user.email}
+                        </span>
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator className="bg-zinc-200/60 dark:bg-zinc-800/60" />
+                      <DropdownMenuItem onClick={() => setIsProfileOpen(true)} className="cursor-pointer py-2.5 focus:bg-zinc-100 dark:focus:bg-zinc-800 rounded-md m-1">
+                        <Settings className="w-4 h-4 mr-2" />
+                        상세 프로필 편집
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild className="cursor-pointer py-2.5 focus:bg-zinc-100 dark:focus:bg-zinc-800 rounded-md m-1">
+                        <Link href="/stats">
+                          <ChartBar className="w-4 h-4 mr-2" />
+                          통계 대시보드
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator className="bg-zinc-200/60 dark:bg-zinc-800/60" />
+                      <DropdownMenuItem onClick={handleLogout} className="cursor-pointer py-2.5 text-red-500 focus:text-red-500 focus:bg-red-50 dark:focus:bg-red-950/50 rounded-md m-1">
+                        <LogOut className="w-4 h-4 mr-2" />
+                        로그아웃
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             </div>
