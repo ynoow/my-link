@@ -26,6 +26,11 @@ export default async function Image({ params }: { params: { username: string } }
     console.error("Error fetching user for OG:", error);
   }
 
+  const displayBio = user.bio.length > 80 ? user.bio.substring(0, 80) + '...' : user.bio;
+  
+  // Fetch SUIT font for Korean support in Satori
+  const fontData = await fetch('https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/ttf/SUIT-Bold.ttf').then((res) => res.arrayBuffer());
+
   return new ImageResponse(
     (
       <div
@@ -37,7 +42,7 @@ export default async function Image({ params }: { params: { username: string } }
           alignItems: 'center',
           justifyContent: 'center',
           backgroundImage: 'linear-gradient(to bottom right, #f8fafc, #e0e7ff)',
-          fontFamily: 'sans-serif',
+          fontFamily: '"SUIT"',
           position: 'relative',
         }}
       >
@@ -52,37 +57,46 @@ export default async function Image({ params }: { params: { username: string } }
           alignItems: 'center', 
           justifyContent: 'center',
           background: 'white', 
-          padding: '60px 80px', 
-          borderRadius: '40px', 
-          boxShadow: '0 25px 50px -12px rgba(0,0,0,0.1)', 
+          padding: '48px 64px', 
+          borderRadius: '32px', 
+          boxShadow: '0 20px 40px -12px rgba(0,0,0,0.1)', 
           border: '2px solid rgba(226,232,240,0.8)', 
           zIndex: 10,
-          maxWidth: '80%'
+          maxWidth: '85%',
         }}>
           {user.photoURL ? (
             <img
               src={user.photoURL}
               alt="Profile"
-              style={{ width: 180, height: 180, borderRadius: 90, border: '8px solid white', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', objectFit: 'cover' }}
+              style={{ width: 140, height: 140, borderRadius: 70, border: '6px solid white', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', objectFit: 'cover' }}
             />
           ) : (
-            <div style={{ width: 180, height: 180, borderRadius: 90, background: 'linear-gradient(to top right, #8b5cf6, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 72, fontWeight: 'bold', border: '8px solid white', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
+            <div style={{ width: 140, height: 140, borderRadius: 70, background: 'linear-gradient(to top right, #8b5cf6, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 56, border: '6px solid white', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
               {user.displayName.charAt(0).toUpperCase()}
             </div>
           )}
-          <h1 style={{ fontSize: 64, fontWeight: 900, color: '#0f172a', marginTop: '40px', marginBottom: '12px', textAlign: 'center' }}>
+          <h1 style={{ fontSize: 52, color: '#0f172a', marginTop: '24px', marginBottom: '8px', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '800px' }}>
             {user.displayName}
           </h1>
-          <p style={{ fontSize: 32, color: '#64748b', margin: 0, fontWeight: 500 }}>
+          <p style={{ fontSize: 28, color: '#64748b', margin: 0 }}>
             @{params.username}
           </p>
-          <div style={{ display: 'flex', width: '60px', height: '6px', background: 'linear-gradient(to right, #8b5cf6, #3b82f6)', borderRadius: '3px', marginTop: '30px', marginBottom: '30px' }} />
-          <p style={{ fontSize: 36, color: '#334155', margin: 0, maxWidth: '700px', textAlign: 'center', fontWeight: 600, lineHeight: 1.5 }}>
-            {user.bio}
+          <div style={{ display: 'flex', width: '40px', height: '6px', background: 'linear-gradient(to right, #8b5cf6, #3b82f6)', borderRadius: '3px', marginTop: '20px', marginBottom: '20px' }} />
+          <p style={{ fontSize: 30, color: '#334155', margin: 0, maxWidth: '800px', textAlign: 'center', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+            {displayBio}
           </p>
         </div>
       </div>
     ),
-    { ...size }
+    { 
+      ...size,
+      fonts: [
+        {
+          name: 'SUIT',
+          data: fontData,
+          style: 'normal',
+        }
+      ]
+    }
   );
 }
