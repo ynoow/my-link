@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Camera, Video, BookOpen, Code, Briefcase, ArrowRight, LinkIcon, Plus, X, Pencil, Trash2, LogOut, Settings, ChartBar, MapPin, Loader2, Link as LinkIcon2 } from "lucide-react";
+import { Camera, Video, BookOpen, Code, Briefcase, ArrowRight, LinkIcon, Plus, X, Pencil, Trash2, LogOut, Settings, ChartBar, MapPin, Loader2, Link as LinkIcon2, Copy } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -77,6 +77,10 @@ export default function Page() {
       })) as LinkItem[];
       setLinks(fetchedLinks);
       setIsLoading(false);
+    }, (error) => {
+      console.error("Error fetching links:", error);
+      toast.error("링크 데이터를 불러오는데 실패했습니다. (인덱스 생성 중일 수 있습니다.)");
+      setIsLoading(false);
     });
 
     const unsubProfile = onSnapshot(doc(db, "users", user.uid), (docSnap) => {
@@ -90,6 +94,9 @@ export default function Page() {
         setDisplayName(user.displayName || "");
         setUsername(user.email?.split("@")[0] || "");
       }
+    }, (error) => {
+      console.error("Error fetching profile:", error);
+      setIsLoading(false);
     });
 
     return () => {
@@ -183,6 +190,16 @@ export default function Page() {
     }
   };
 
+  const handleCopyLink = () => {
+    if (!profile?.username) {
+      toast.error("프로필 설정에서 '사용자 아이디'를 먼저 설정해주세요!");
+      return;
+    }
+    const shareUrl = `${window.location.origin}/${profile.username}`;
+    navigator.clipboard.writeText(shareUrl);
+    toast.success("내 프로필 링크가 복사되었습니다!");
+  };
+
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
   }
@@ -249,6 +266,13 @@ export default function Page() {
                 <p className="text-base text-zinc-600 dark:text-zinc-400 leading-relaxed max-w-sm mt-4">
                   {profile?.bio || "나를 소개하는 한 줄을 작성해보세요."}
                 </p>
+                
+                <div className="pt-4">
+                  <Button onClick={handleCopyLink} variant="outline" className="gap-2 rounded-full shadow-sm w-full md:w-auto">
+                    <Copy className="w-4 h-4" />
+                    내 링크 복사하기
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
