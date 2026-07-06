@@ -34,15 +34,6 @@ export default function PublicProfilePage() {
       const userDoc = snap.docs[0];
       const data = { id: userDoc.id, ...userDoc.data() } as any;
 
-      // Increment views count asynchronously
-      try {
-        await updateDoc(doc(db, "users", userDoc.id), {
-          views: increment(1)
-        });
-      } catch (err) {
-        console.error("Failed to increment views", err);
-      }
-
       return data;
     },
     retry: false
@@ -136,6 +127,13 @@ export default function PublicProfilePage() {
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="block group"
+                    onClick={() => {
+                      if (userData?.id && link.id) {
+                        updateDoc(doc(db, "users", userData.id, "links", link.id), {
+                          clicks: increment(1)
+                        }).catch(console.error);
+                      }
+                    }}
                   >
                     <Card className="relative overflow-hidden border-zinc-200/60 dark:border-zinc-800/60 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-1 hover:border-primary/30">
                       <CardContent className="p-4 md:p-6 flex items-center gap-4 relative z-10">

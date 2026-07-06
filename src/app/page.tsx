@@ -21,6 +21,7 @@ interface LinkItem {
   url: string;
   icon?: string;
   order?: number;
+  clicks?: number;
 }
 
 interface UserProfile {
@@ -28,7 +29,6 @@ interface UserProfile {
   bio: string;
   photoURL: string;
   username: string;
-  views?: number;
 }
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -395,19 +395,11 @@ export default function Page() {
                 </div>
                 
                 <div className="pt-4 flex flex-col gap-3 w-full">
-                  <div className="flex items-center gap-3 text-sm text-zinc-500 dark:text-zinc-400 font-medium">
+                  <div className="flex items-center gap-3 text-sm text-zinc-500 dark:text-zinc-400 font-medium mb-1">
                     <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300">
                       <MapPin className="w-4 h-4" />
                     </div>
                     <span>Seoul, South Korea</span>
-                  </div>
-                  
-                  {/* Views Counter */}
-                  <div className="flex items-center gap-3 text-sm text-zinc-500 dark:text-zinc-400 font-medium mb-1">
-                    <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-500 dark:text-blue-400">
-                      <Eye className="w-4 h-4" />
-                    </div>
-                    <span>총 조회수: <strong>{profile?.views?.toLocaleString() || 0}</strong>회</span>
                   </div>
                   <Button onClick={handleCopyLink} variant="outline" className="gap-2 rounded-xl shadow-sm w-full mt-2">
                     <Copy className="w-4 h-4" />
@@ -479,9 +471,15 @@ export default function Page() {
                                 <div className="flex shrink-0 items-center justify-center w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-zinc-100/80 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-300 group-hover:bg-primary group-hover:text-primary-foreground group-hover:shadow-md transition-all duration-300 group-hover:scale-105">
                                   {link.icon && iconMap[link.icon] ? iconMap[link.icon] : <LinkIcon2 className="w-5 h-5" />}
                                 </div>
-                                <span className="font-semibold text-base md:text-lg text-zinc-700 dark:text-zinc-200 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors truncate">
-                                  {link.title}
-                                </span>
+                                <div className="flex flex-col min-w-0 flex-1">
+                                  <span className="font-semibold text-base md:text-lg text-zinc-700 dark:text-zinc-200 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors truncate">
+                                    {link.title}
+                                  </span>
+                                  <span className="text-xs text-zinc-400 font-medium flex items-center gap-1 mt-1">
+                                    <ChartBar className="w-3.5 h-3.5" />
+                                    클릭 {link.clicks?.toLocaleString() || 0}회
+                                  </span>
+                                </div>
                               </Link>
 
                               {/* Edit/Delete Buttons & Arrow */}
