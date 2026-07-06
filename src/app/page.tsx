@@ -69,18 +69,13 @@ export default function Page() {
   useEffect(() => {
     if (!user) return;
 
-    const q = query(collection(db, "links"), where("userId", "==", user.uid));
+    const q = query(collection(db, "users", user.uid, "links"), orderBy("createdAt", "desc"));
     const unsubLinks = onSnapshot(q, (snapshot) => {
       const fetchedLinks = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as LinkItem[];
       
-      fetchedLinks.sort((a, b) => {
-        const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
-        const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
-        return timeB - timeA;
-      });
 
       setLinks(fetchedLinks);
       setIsLoading(false);
@@ -128,7 +123,7 @@ export default function Page() {
     e.preventDefault();
     if (!user) return;
     try {
-      await addDoc(collection(db, "links"), {
+      await addDoc(collection(db, "users", user.uid, "links"), {
         userId: user.uid,
         title,
         url: url.startsWith("http") ? url : `https://${url}`,
@@ -148,7 +143,7 @@ export default function Page() {
     e.preventDefault();
     if (!editingLink) return;
     try {
-      await updateDoc(doc(db, "links", editingLink.id), {
+      await updateDoc(doc(db, "users", user.uid, "links", editingLink.id), {
         title,
         url: url.startsWith("http") ? url : `https://${url}`,
       });
@@ -165,7 +160,7 @@ export default function Page() {
   const handleDeleteLink = async (id: string) => {
     if (!confirm("정말 삭제하시겠습니까?")) return;
     try {
-      await deleteDoc(doc(db, "links", id));
+      await deleteDoc(doc(db, "users", user.uid, "links", id));
       toast.success("링크가 삭제되었습니다.");
     } catch (err) {
       toast.error("링크 삭제 실패");
