@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Camera, Video, BookOpen, Code, Briefcase, ArrowRight, LinkIcon, Plus, X, Pencil, Trash2, LogOut, Settings, ChartBar, MapPin, Loader2, Link as LinkIcon2, Copy } from "lucide-react";
+import { Camera, Video, BookOpen, Code, Briefcase, ArrowRight, LinkIcon, Plus, Pencil, Trash2, LogOut, Settings, ChartBar, MapPin, Loader2, Link as LinkIcon2, Copy } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -51,6 +51,7 @@ export default function Page() {
 
   // Form states
   const [title, setTitle] = useState("");
+  const [url, setUrl] = useState("");
   const [inlineEditId, setInlineEditId] = useState<string | null>(null);
   const [inlineTitle, setInlineTitle] = useState("");
   const [inlineUrl, setInlineUrl] = useState("");
