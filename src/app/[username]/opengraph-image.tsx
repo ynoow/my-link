@@ -30,8 +30,8 @@ export default async function Image({ params }: { params: { username: string } }
 
   const displayBio = user.bio.length > 80 ? user.bio.substring(0, 80) + '...' : user.bio;
   
-  // Fetch SUIT font for Korean support in Satori
-  const fontData = await fetch('https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/ttf/SUIT-Bold.ttf').then((res) => res.arrayBuffer());
+  // Use local font to guarantee it loads and prevent 404/500 errors
+  const fontData = await fetch(new URL('./fonts/malgun.ttf', import.meta.url)).then(res => res.arrayBuffer());
 
   return new ImageResponse(
     (
