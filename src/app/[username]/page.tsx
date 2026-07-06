@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
+import { collection, query, where, getDocs, orderBy, updateDoc, doc, increment } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { notFound, useParams } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -32,7 +32,18 @@ export default function PublicProfilePage() {
       }
       
       const userDoc = snap.docs[0];
-      return { id: userDoc.id, ...userDoc.data() } as any;
+      const data = { id: userDoc.id, ...userDoc.data() } as any;
+
+      // Increment views count asynchronously
+      try {
+        await updateDoc(doc(db, "users", userDoc.id), {
+          views: increment(1)
+        });
+      } catch (err) {
+        console.error("Failed to increment views", err);
+      }
+
+      return data;
     },
     retry: false
   });

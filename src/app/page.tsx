@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Camera, Video, BookOpen, Code, Briefcase, ArrowRight, LinkIcon, Plus, Pencil, Trash2, LogOut, Settings, ChartBar, MapPin, Loader2, Link as LinkIcon2, Copy } from "lucide-react";
+import { Camera, Video, BookOpen, Code, Briefcase, ArrowRight, LinkIcon, Plus, Pencil, Trash2, LogOut, Settings, ChartBar, MapPin, Loader2, Link as LinkIcon2, Copy, Eye } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -28,6 +28,7 @@ interface UserProfile {
   bio: string;
   photoURL: string;
   username: string;
+  views?: number;
 }
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -399,6 +400,14 @@ export default function Page() {
                       <MapPin className="w-4 h-4" />
                     </div>
                     <span>Seoul, South Korea</span>
+                  </div>
+                  
+                  {/* Views Counter */}
+                  <div className="flex items-center gap-3 text-sm text-zinc-500 dark:text-zinc-400 font-medium mb-1">
+                    <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-500 dark:text-blue-400">
+                      <Eye className="w-4 h-4" />
+                    </div>
+                    <span>총 조회수: <strong>{profile?.views?.toLocaleString() || 0}</strong>회</span>
                   </div>
                   <Button onClick={handleCopyLink} variant="outline" className="gap-2 rounded-xl shadow-sm w-full mt-2">
                     <Copy className="w-4 h-4" />
