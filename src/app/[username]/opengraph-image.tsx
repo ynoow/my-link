@@ -84,7 +84,7 @@ export default async function Image({ params }: { params: { username: string } }
             @{params.username}
           </p>
           <div style={{ display: 'flex', width: '40px', height: '6px', background: 'linear-gradient(to right, #8b5cf6, #3b82f6)', borderRadius: '3px', marginTop: '20px', marginBottom: '20px' }} />
-          <p style={{ fontSize: 30, color: '#334155', margin: 0, maxWidth: '800px', textAlign: 'center', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+          <p style={{ display: 'flex', fontSize: 30, color: '#334155', margin: 0, maxWidth: '800px', textAlign: 'center', lineHeight: 1.4 }}>
             {displayBio}
           </p>
         </div>

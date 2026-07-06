@@ -20,7 +20,7 @@ export default async function Image() {
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
-          backgroundImage: 'linear-gradient(to bottom right, #eef2ff, #ffffff, #faf5ff)',
+          backgroundImage: 'linear-gradient(to bottom right, #eef2ff, #faf5ff)',
           fontFamily: '"SUIT"',
           padding: '60px 80px',
           overflow: 'hidden',
