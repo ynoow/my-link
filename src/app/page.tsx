@@ -284,7 +284,7 @@ export default function Page() {
                 </Avatar>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 mt-1 rounded-xl shadow-xl border-zinc-200/60 dark:border-zinc-800/60 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl">
-                <DropdownMenuLabel className="flex flex-col gap-1.5 p-3">
+                <div className="flex flex-col gap-1.5 p-3 px-2 py-2 text-xs font-medium text-muted-foreground">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-sm truncate pr-2 text-zinc-900 dark:text-zinc-100">
                       {profile?.displayName || user.displayName || "User"}
@@ -293,7 +293,7 @@ export default function Page() {
                   <span className="text-xs text-zinc-500 font-medium truncate">
                     {user.email}
                   </span>
-                </DropdownMenuLabel>
+                </div>
                 <DropdownMenuSeparator className="bg-zinc-200/60 dark:bg-zinc-800/60" />
                 <DropdownMenuItem onClick={() => setIsProfileOpen(true)} className="cursor-pointer py-2.5 focus:bg-zinc-100 dark:focus:bg-zinc-800 rounded-md m-1">
                   <Settings className="w-4 h-4 mr-2" />
