@@ -7,6 +7,7 @@ export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+export const runtime = 'edge';
 
 export default async function Image({ params }: { params: { username: string } }) {
   let user = {
@@ -30,8 +31,8 @@ export default async function Image({ params }: { params: { username: string } }
 
   const displayBio = user.bio.length > 80 ? user.bio.substring(0, 80) + '...' : user.bio;
   
-  // Use local font to guarantee it loads and prevent 404/500 errors
-  const fontData = await fetch(new URL('../fonts/malgun.ttf', import.meta.url)).then(res => res.arrayBuffer());
+  // Use a highly reliable small woff subset from jsdelivr/fontsource to prevent bundle errors or 404s
+  const fontData = await fetch('https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-kr/files/noto-sans-kr-korean-700-normal.woff').then(res => res.arrayBuffer());
 
   return new ImageResponse(
     (
