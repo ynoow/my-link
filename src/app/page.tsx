@@ -510,17 +510,60 @@ export default function Page() {
           </div>
         </>
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-zinc-50/50 dark:bg-zinc-950/80 min-h-[calc(100vh)]">
-          <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
-            <LinkIcon className="w-10 h-10 text-primary" />
+        <div className="w-full flex flex-col md:flex-row items-center justify-center p-8 md:p-24 bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 min-h-[calc(100vh)] gap-12 overflow-hidden relative">
+          
+          {/* Decorative Background Elements */}
+          <div className="absolute top-20 left-10 w-72 h-72 bg-blue-400/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-pulse duration-1000"></div>
+          <div className="absolute top-40 right-10 w-72 h-72 bg-purple-400/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-pulse duration-700"></div>
+          <div className="absolute -bottom-8 left-40 w-72 h-72 bg-pink-400/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-pulse duration-500"></div>
+
+          {/* Text Content */}
+          <div className="flex-1 flex flex-col items-center md:items-start text-center md:text-left z-10 max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-zinc-800 shadow-sm border border-zinc-200 dark:border-zinc-700 mb-8 transition-transform hover:scale-105">
+              <span className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+              <span className="text-sm font-medium text-zinc-600 dark:text-zinc-300">MyLink is now in Public Beta</span>
+            </div>
+            
+            <h1 className="text-5xl md:text-7xl font-extrabold text-zinc-900 dark:text-white tracking-tight mb-6 leading-tight">
+              One Link to <br/>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-500">Rule Them All.</span>
+            </h1>
+            
+            <p className="text-lg md:text-xl text-zinc-500 dark:text-zinc-400 mb-10 max-w-lg font-medium leading-relaxed">
+              Google 계정으로 단 3초만에 로그인하고, 나만의 멋진 프로필 페이지를 만들어 세상에 공유하세요.
+            </p>
+            
+            <Button size="lg" onClick={handleLogin} className="group relative text-lg px-8 py-7 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:scale-105 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden">
+              <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-purple-500 via-blue-500 to-pink-500 opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
+              <span className="relative flex items-center gap-2">
+                Google 계정으로 시작하기
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </span>
+            </Button>
           </div>
-          <h2 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 mb-4">나만의 링크트리를 만들어보세요</h2>
-          <p className="text-zinc-500 dark:text-zinc-400 mb-8 max-w-md text-lg">
-            Google 계정으로 로그인하여 여러 개의 링크를 한 곳에 모아 공유할 수 있는 페이지를 쉽게 만들어보세요.
-          </p>
-          <Button size="lg" onClick={handleLogin} className="text-lg px-8 py-6 rounded-full shadow-lg hover:shadow-xl transition-all">
-            Google 계정으로 시작하기
-          </Button>
+
+          {/* Visual Mockup Content */}
+          <div className="flex-1 w-full max-w-md relative z-10 mt-12 md:mt-0 perspective-1000">
+            <div className="relative rounded-[2.5rem] bg-white dark:bg-zinc-900 shadow-2xl border-[12px] border-zinc-100 dark:border-zinc-800 p-6 transform md:rotate-[-5deg] hover:rotate-0 transition-transform duration-700 overflow-hidden group">
+              <div className="absolute top-0 inset-x-0 h-6 bg-zinc-100 dark:bg-zinc-800 flex justify-center">
+                <div className="w-20 h-4 bg-white dark:bg-zinc-900 rounded-b-xl"></div>
+              </div>
+              <div className="flex flex-col items-center mt-8 space-y-4">
+                <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 p-1 shadow-lg group-hover:scale-110 transition-transform duration-500">
+                  <div className="w-full h-full rounded-full bg-white dark:bg-zinc-950 flex items-center justify-center text-4xl">🚀</div>
+                </div>
+                <div className="h-6 w-32 bg-zinc-200 dark:bg-zinc-800 rounded-full mt-2"></div>
+                <div className="h-4 w-48 bg-zinc-100 dark:bg-zinc-800/50 rounded-full mb-6"></div>
+                
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="w-full h-14 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl flex items-center px-4 gap-3 shadow-sm hover:scale-105 hover:shadow-md transition-all cursor-pointer">
+                    <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-700"></div>
+                    <div className="h-4 w-24 bg-zinc-200 dark:bg-zinc-700 rounded-full"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
