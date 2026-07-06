@@ -1,15 +1,34 @@
 "use client";
-import React, { useEffect } from "react";
-import { auth, googleProvider } from "@/lib/firebase";
-import { signInWithPopup, User } from "firebase/auth";
-import { Loader2 } from "lucide-react";
 
-import { useState } from "react";
-import { links as initialLinks, LinkItem } from "@/data/links";
+import React, { useState, useEffect } from "react";
+import { auth, db, googleProvider } from "@/lib/firebase";
+import { signInWithPopup, signOut, User } from "firebase/auth";
+import { collection, query, where, orderBy, onSnapshot, doc, updateDoc, deleteDoc, addDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Camera, Video, BookOpen, Code, Briefcase, ArrowRight, MapPin, LinkIcon, Plus, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Camera, Video, BookOpen, Code, Briefcase, ArrowRight, LinkIcon, Plus, X, Pencil, Trash2, LogOut, Settings, ChartBar, MapPin, Loader2, Link as LinkIcon2 } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
+
+interface LinkItem {
+  id: string;
+  title: string;
+  url: string;
+  icon?: string;
+  order?: number;
+}
+
+interface UserProfile {
+  displayName: string;
+  bio: string;
+  photoURL: string;
+  username: string;
+}
 
 const iconMap: Record<string, React.ReactNode> = {
   Instagram: <Camera className="w-5 h-5" />,
@@ -20,294 +39,344 @@ const iconMap: Record<string, React.ReactNode> = {
 };
 
 export default function Page() {
-  const [links, setLinks] = useState<LinkItem[]>(initialLinks);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [linkToDelete, setLinkToDelete] = useState<LinkItem | null>(null);
+  const [links, setLinks] = useState<LinkItem[]>([]);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Modal states
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  // Form states
+  const [title, setTitle] = useState("");
+  const [url, setUrl] = useState("");
+  const [editingLink, setEditingLink] = useState<LinkItem | null>(null);
+
+  const [displayName, setDisplayName] = useState("");
+  const [bio, setBio] = useState("");
+  const [username, setUsername] = useState("");
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(setUser);
+    const unsubscribe = auth.onAuthStateChanged((u) => {
+      setUser(u);
+      if (!u) setIsLoading(false);
+    });
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const q = query(collection(db, "links"), where("userId", "==", user.uid), orderBy("createdAt", "desc"));
+    const unsubLinks = onSnapshot(q, (snapshot) => {
+      const fetchedLinks = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as LinkItem[];
+      setLinks(fetchedLinks);
+      setIsLoading(false);
+    });
+
+    const unsubProfile = onSnapshot(doc(db, "users", user.uid), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data() as UserProfile;
+        setProfile(data);
+        setDisplayName(data.displayName || user.displayName || "");
+        setBio(data.bio || "");
+        setUsername(data.username || "");
+      } else {
+        setDisplayName(user.displayName || "");
+        setUsername(user.email?.split("@")[0] || "");
+      }
+    });
+
+    return () => {
+      unsubLinks();
+      unsubProfile();
+    };
+  }, [user]);
 
   const handleLogin = async () => {
     try {
       await signInWithPopup(auth, googleProvider);
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      toast.error("로그인에 실패했습니다.");
     }
   };
 
-  const handleDelete = async () => {
-    setIsDeleting(true);
-    setTimeout(() => {
-        setLinks(links.filter(l => l.id !== linkToDelete?.id));
-        setIsDeleting(false);
-        setIsDeleteDialogOpen(false);
-    }, 500);
+  const handleLogout = async () => {
+    await signOut(auth);
   };
-  
-  // Form state
-  const [newTitle, setNewTitle] = useState("");
-  const [newUrl, setNewUrl] = useState("");
-  const [error, setError] = useState("");
 
-  const handleAddLink = (e: React.FormEvent) => {
+  const handleAddLink = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const trimmedTitle = newTitle.trim();
-    if (!trimmedTitle) {
-      setError("제목을 입력해주세요.");
-      return;
-    }
-    if (trimmedTitle.length > 50) {
-      setError("제목은 50자를 초과할 수 없습니다.");
-      return;
-    }
-
-    let formattedUrl = newUrl.trim();
-    if (!formattedUrl) {
-      setError("URL을 입력해주세요.");
-      return;
-    }
-
-    if (!/^https?:\/\//i.test(formattedUrl)) {
-      formattedUrl = 'https://' + formattedUrl;
-    }
-
+    if (!user) return;
     try {
-      new URL(formattedUrl);
-    } catch (_) {
-      setError("올바른 형식의 URL을 입력해주세요. (예: example.com)");
-      return;
+      await addDoc(collection(db, "links"), {
+        userId: user.uid,
+        title,
+        url: url.startsWith("http") ? url : `https://${url}`,
+        icon: "LinkIcon",
+        createdAt: serverTimestamp()
+      });
+      setIsAddOpen(false);
+      setTitle("");
+      setUrl("");
+      toast.success("링크가 추가되었습니다.");
+    } catch (err) {
+      toast.error("링크 추가 실패");
     }
-
-    setError(""); // Clear error
-    
-    const newLink: LinkItem = {
-      id: Date.now().toString(),
-      title: trimmedTitle,
-      url: formattedUrl,
-      // Default to link icon if not matched
-      icon: "LinkIcon", 
-    };
-    
-    // Add to the top of the list
-    setLinks([newLink, ...links]);
-    
-    // Reset and close
-    setIsDialogOpen(false);
-    setNewTitle("");
-    setNewUrl("");
   };
+
+  const handleEditLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingLink) return;
+    try {
+      await updateDoc(doc(db, "links", editingLink.id), {
+        title,
+        url: url.startsWith("http") ? url : `https://${url}`,
+      });
+      setIsEditOpen(false);
+      setEditingLink(null);
+      setTitle("");
+      setUrl("");
+      toast.success("링크가 수정되었습니다.");
+    } catch (err) {
+      toast.error("링크 수정 실패");
+    }
+  };
+
+  const handleDeleteLink = async (id: string) => {
+    if (!confirm("정말 삭제하시겠습니까?")) return;
+    try {
+      await deleteDoc(doc(db, "links", id));
+      toast.success("링크가 삭제되었습니다.");
+    } catch (err) {
+      toast.error("링크 삭제 실패");
+    }
+  };
+
+  const openEditModal = (link: LinkItem) => {
+    setEditingLink(link);
+    setTitle(link.title);
+    setUrl(link.url);
+    setIsEditOpen(true);
+  };
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    try {
+      await setDoc(doc(db, "users", user.uid), {
+        displayName,
+        bio,
+        username,
+        photoURL: user.photoURL || "",
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      setIsProfileOpen(false);
+      toast.success("프로필이 업데이트되었습니다.");
+    } catch (err) {
+      toast.error("프로필 업데이트 실패");
+    }
+  };
+
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+  }
 
   return (
-    <>
     <div className="flex flex-col md:flex-row min-h-svh bg-zinc-50 dark:bg-zinc-950 font-sans selection:bg-primary/30">
       {user ? (
         <>
-      {/* Left Column: Fixed Profile Section */}
-      <div className="w-full md:w-[350px] lg:w-[420px] md:h-screen md:sticky top-0 bg-white dark:bg-zinc-900 border-b md:border-b-0 md:border-r border-zinc-200 dark:border-zinc-800 flex flex-col justify-between p-8 md:p-12 relative overflow-hidden z-10 shadow-sm md:shadow-none">
-        
-        {/* Subtle decorative background gradient */}
-        <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-br from-primary/10 to-transparent opacity-50 pointer-events-none -z-10" />
-
-        <div className="space-y-8 mt-4 md:mt-12">
-          {/* Avatar Profile */}
-          <div className="relative inline-block">
-            <div className="w-28 h-28 md:w-32 md:h-32 rounded-full bg-gradient-to-tr from-primary/80 to-primary/20 p-[3px] shadow-lg shadow-primary/20">
-              <div className="w-full h-full rounded-full bg-white dark:bg-zinc-950 flex items-center justify-center overflow-hidden border-[3px] border-white dark:border-zinc-950">
-                {user.photoURL ? (
-                  <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-5xl md:text-6xl">🧑‍💻</span>
-                )}
-              </div>
-            </div>
-            {/* Status indicator */}
-            <div className="absolute bottom-2 right-2 md:bottom-3 md:right-3 w-5 h-5 md:w-6 md:h-6 bg-green-500 border-4 border-white dark:border-zinc-900 rounded-full shadow-sm"></div>
+          {/* Header for Mobile/Desktop */}
+          <div className="absolute top-4 right-4 z-50">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="rounded-full shadow-sm">
+                  <Avatar className="w-8 h-8 cursor-pointer">
+                    <AvatarImage src={user.photoURL || undefined} />
+                    <AvatarFallback>{profile?.displayName?.charAt(0) || user.displayName?.charAt(0) || "U"}</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>내 계정</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setIsProfileOpen(true)} className="cursor-pointer">
+                  <Settings className="w-4 h-4 mr-2" />
+                  프로필 편집
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="cursor-pointer">
+                  <Link href="/stats">
+                    <ChartBar className="w-4 h-4 mr-2" />
+                    통계 대시보드
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-500 focus:text-red-500">
+                  <LogOut className="w-4 h-4 mr-2" />
+                  로그아웃
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
-          {/* Profile Text */}
-          <div className="space-y-4">
-            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50 truncate">
-              {user.displayName || "User"}
-            </h1>
-            <p className="text-base md:text-lg text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed max-w-xs break-all">
-              @{user.email ? user.email.split('@')[0] : "user"}
-            </p>
-          </div>
-
-          {/* Location & Link Info */}
-          <div className="flex flex-col gap-3 text-sm text-zinc-500 dark:text-zinc-400 font-medium pt-2">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300">
-                <MapPin className="w-4 h-4" />
-              </div>
-              <span>Seoul, South Korea</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300">
-                <LinkIcon className="w-4 h-4" />
-              </div>
-              <a href="#" className="hover:text-primary transition-colors">mylink.io/jaehoon</a>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Right Column: Scrollable Link List */}
-      <div className="flex-1 w-full bg-zinc-50/50 dark:bg-zinc-950/80 relative">
-        {/* Decorative mesh gradient on the right side */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/5 via-transparent to-transparent pointer-events-none" />
-
-        <div className="max-w-3xl mx-auto p-6 md:p-12 lg:p-20 md:py-24 space-y-10 md:space-y-12 relative z-10">
-          
-          <div className="flex items-center justify-between">
-            <div className="space-y-3">
-              <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">My Links</h2>
-              <p className="text-sm md:text-base text-zinc-500 dark:text-zinc-400 font-medium">Explore my content, portfolio, and social profiles.</p>
-            </div>
-            
-            {/* Add Link Button */}
-            <Button onClick={() => { setIsDialogOpen(true); setError(""); }} className="gap-2 shrink-0">
-              <Plus className="w-4 h-4" />
-              새 링크 추가
-            </Button>
-          </div>
-
-          <div className="flex flex-col gap-4 md:gap-5">
-            {links.map((link) => (
-              <Link 
-                key={link.id} 
-                href={link.url} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="block group outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-2xl"
-              >
-                <Card className="relative overflow-hidden transition-all duration-500 hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/10 border-zinc-200/60 dark:border-zinc-800/60 group-hover:border-primary/40 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl">
-                  {/* Hover background gradient effect */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 translate-x-[-100%] group-hover:translate-x-[100%] ease-in-out pointer-events-none" />
-                  
-                  <CardContent className="p-4 md:p-6 flex items-center justify-between relative z-10">
-                    <div className="flex items-center gap-4 md:gap-6">
-                      <div className="flex items-center justify-center w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-zinc-100/80 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-300 group-hover:bg-primary group-hover:text-primary-foreground group-hover:shadow-md transition-all duration-300 group-hover:scale-105">
-                        {link.icon && iconMap[link.icon] ? iconMap[link.icon] : <LinkIcon className="w-5 h-5" />}
-                      </div>
-                      <span className="font-semibold text-base md:text-lg text-zinc-700 dark:text-zinc-200 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors">
-                        {link.title}
-                      </span>
-                    </div>
-                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 group-hover:bg-primary/10 group-hover:border-primary/20 transition-all duration-300">
-                      <ArrowRight className="w-5 h-5 text-zinc-400 dark:text-zinc-500 group-hover:text-primary transition-colors group-hover:translate-x-1 duration-300" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
-          
-        </div>
-      </div>
-          </>
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-zinc-50/50 dark:bg-zinc-950/80 min-h-[calc(100vh-64px)]">
-            <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
-              <LinkIcon className="w-10 h-10 text-primary" />
-            </div>
-            <h2 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 mb-4">나만의 링크트리를 만들어보세요</h2>
-            <p className="text-zinc-500 dark:text-zinc-400 mb-8 max-w-md text-lg">
-              Google 계정으로 로그인하여 여러 개의 링크를 한 곳에 모아 공유할 수 있는 페이지를 쉽게 만들어보세요.
-            </p>
-            <Button size="lg" onClick={handleLogin} className="text-lg px-8 py-6">
-              Google 계정으로 시작하기
-            </Button>
-          </div>
-        )}
-      </div>
-
-      {/* Dialog Overlay */}
-      {isDialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden border border-zinc-200 dark:border-zinc-800 animate-in fade-in zoom-in duration-200">
-            <div className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center">
-              <h3 className="text-lg font-bold">새 링크 추가</h3>
-              <button 
-                onClick={() => { setIsDialogOpen(false); setError(""); }} 
-                className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors p-1 rounded-md"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <form onSubmit={handleAddLink} className="p-6 space-y-5">
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">제목 (Title)</label>
-                <input 
-                  type="text" 
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="예: My Blog"
-                  required
-                  className="w-full px-4 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">URL (Destination)</label>
-                <input 
-                  type="text" 
-                  value={newUrl}
-                  onChange={(e) => setNewUrl(e.target.value)}
-                  placeholder="예: www.youtube.com/..."
-                  required
-                  className="w-full px-4 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow"
-                />
-              </div>
-              
-              {error && (
-                <div className="text-sm font-medium text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-950/50 p-3 rounded-md border border-red-200 dark:border-red-900/50">
-                  {error}
+          {/* Left Column: Fixed Profile Section */}
+          <div className="w-full md:w-[350px] lg:w-[420px] md:h-screen md:sticky top-0 bg-white dark:bg-zinc-900 border-b md:border-b-0 md:border-r border-zinc-200 dark:border-zinc-800 flex flex-col justify-center p-8 md:p-12 relative overflow-hidden z-10 shadow-sm md:shadow-none">
+            <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-br from-primary/10 to-transparent opacity-50 pointer-events-none -z-10" />
+            <div className="space-y-8">
+              <div className="relative inline-block">
+                <div className="w-28 h-28 md:w-32 md:h-32 rounded-full bg-gradient-to-tr from-primary/80 to-primary/20 p-[3px] shadow-lg shadow-primary/20">
+                  <div className="w-full h-full rounded-full bg-white dark:bg-zinc-950 flex items-center justify-center overflow-hidden border-[3px] border-white dark:border-zinc-950">
+                    {user.photoURL ? (
+                      <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-5xl md:text-6xl">🧑‍💻</span>
+                    )}
+                  </div>
                 </div>
-              )}
-              
-              <div className="pt-2">
-                <Button type="submit" className="w-full text-base py-6">
-                  링크 추가하기
+              </div>
+              <div className="space-y-3">
+                <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">
+                  {profile?.displayName || user.displayName || "User"}
+                </h1>
+                <p className="text-lg text-primary font-medium flex items-center gap-1.5">
+                  @{profile?.username || user.email?.split('@')[0]}
+                </p>
+                <p className="text-base text-zinc-600 dark:text-zinc-400 leading-relaxed max-w-sm mt-4">
+                  {profile?.bio || "나를 소개하는 한 줄을 작성해보세요."}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Links List */}
+          <div className="flex-1 p-6 md:p-12 lg:p-20 overflow-y-auto">
+            <div className="max-w-3xl mx-auto">
+              <div className="flex items-center justify-between mb-10">
+                <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">내 링크</h2>
+                <Button onClick={() => { setIsAddOpen(true); setTitle(""); setUrl(""); }} className="gap-2 shadow-sm rounded-full px-6">
+                  <Plus className="w-4 h-4" />
+                  링크 추가
                 </Button>
               </div>
-            </form>
+
+              <div className="flex flex-col gap-4">
+                {links.length === 0 ? (
+                  <div className="text-center py-20 text-zinc-500">
+                    추가된 링크가 없습니다.
+                  </div>
+                ) : (
+                  links.map((link) => (
+                    <div key={link.id} className="group relative">
+                      <Card className="relative overflow-hidden transition-all duration-300 hover:shadow-md border-zinc-200/60 dark:border-zinc-800/60 bg-white/70 dark:bg-zinc-900/60">
+                        <CardContent className="p-4 md:p-5 flex items-center justify-between">
+                          <Link href={link.url} target="_blank" className="flex-1 flex items-center gap-4">
+                            <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                              {link.icon && iconMap[link.icon] ? iconMap[link.icon] : <LinkIcon2 className="w-5 h-5" />}
+                            </div>
+                            <span className="font-semibold text-lg text-zinc-700 dark:text-zinc-200 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors">
+                              {link.title}
+                            </span>
+                          </Link>
+                          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button variant="ghost" size="icon" onClick={() => openEditModal(link)} className="h-9 w-9 text-zinc-500 hover:text-primary hover:bg-primary/10">
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleDeleteLink(link.id)} className="h-9 w-9 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
+        </>
+      ) : (
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-zinc-50/50 dark:bg-zinc-950/80 min-h-[calc(100vh)]">
+          <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+            <LinkIcon className="w-10 h-10 text-primary" />
+          </div>
+          <h2 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 mb-4">나만의 링크트리를 만들어보세요</h2>
+          <p className="text-zinc-500 dark:text-zinc-400 mb-8 max-w-md text-lg">
+            Google 계정으로 로그인하여 여러 개의 링크를 한 곳에 모아 공유할 수 있는 페이지를 쉽게 만들어보세요.
+          </p>
+          <Button size="lg" onClick={handleLogin} className="text-lg px-8 py-6 rounded-full shadow-lg hover:shadow-xl transition-all">
+            Google 계정으로 시작하기
+          </Button>
         </div>
       )}
 
-      {/* Delete Dialog */}
-      {isDeleteDialogOpen && linkToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden border border-zinc-200 dark:border-zinc-800 animate-in fade-in zoom-in duration-200 p-6">
-            <h3 className="text-xl font-bold mb-2">정말 삭제하시겠습니까?</h3>
-            <p className="font-semibold text-zinc-900 dark:text-zinc-100 text-lg mb-1">{linkToDelete.title}</p>
-            <p className="text-red-500 font-bold mb-6">이 작업은 되돌릴 수 없습니다</p>
-            <div className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => setIsDeleteDialogOpen(false)} disabled={isDeleting}>
-                취소
-              </Button>
-              <Button variant="destructive" className="flex-1" onClick={handleDelete} disabled={isDeleting}>
-                {isDeleting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    삭제 중...
-                  </>
-                ) : (
-                  "삭제하기"
-                )}
-              </Button>
+      {/* Add Link Dialog */}
+      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>새 링크 추가</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddLink} className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label>제목 (Title)</Label>
+              <Input value={title} onChange={e => setTitle(e.target.value)} required placeholder="예: 내 블로그" />
             </div>
-          </div>
-        </div>
-      )}
-    </>
+            <div className="space-y-2">
+              <Label>URL</Label>
+              <Input value={url} onChange={e => setUrl(e.target.value)} required placeholder="예: https://example.com" />
+            </div>
+            <Button type="submit" className="w-full">추가하기</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Link Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>링크 수정</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditLink} className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label>제목 (Title)</Label>
+              <Input value={title} onChange={e => setTitle(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <Label>URL</Label>
+              <Input value={url} onChange={e => setUrl(e.target.value)} required />
+            </div>
+            <Button type="submit" className="w-full">저장하기</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Profile Edit Dialog */}
+      <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>프로필 수정</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUpdateProfile} className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label>이름 (표시명)</Label>
+              <Input value={displayName} onChange={e => setDisplayName(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <Label>사용자 아이디 (고유 주소용)</Label>
+              <Input value={username} onChange={e => setUsername(e.target.value)} required placeholder="영문/숫자" />
+            </div>
+            <div className="space-y-2">
+              <Label>소개글</Label>
+              <Input value={bio} onChange={e => setBio(e.target.value)} placeholder="나를 표현하는 한 줄" />
+            </div>
+            <Button type="submit" className="w-full">프로필 저장</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
