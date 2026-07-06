@@ -51,8 +51,9 @@ export default function Page() {
 
   // Form states
   const [title, setTitle] = useState("");
-  const [url, setUrl] = useState("");
-  const [editingLink, setEditingLink] = useState<LinkItem | null>(null);
+  const [inlineEditId, setInlineEditId] = useState<string | null>(null);
+  const [inlineTitle, setInlineTitle] = useState("");
+  const [inlineUrl, setInlineUrl] = useState("");
 
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
@@ -139,18 +140,19 @@ export default function Page() {
     }
   };
 
-  const handleEditLink = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingLink) return;
+  const startInlineEdit = (link: LinkItem) => {
+    setInlineEditId(link.id);
+    setInlineTitle(link.title);
+    setInlineUrl(link.url);
+  };
+
+  const handleInlineSave = async (id: string) => {
     try {
-      await updateDoc(doc(db, "users", user.uid, "links", editingLink.id), {
-        title,
-        url: url.startsWith("http") ? url : `https://${url}`,
+      await updateDoc(doc(db, "users", user!.uid, "links", id), {
+        title: inlineTitle,
+        url: inlineUrl.startsWith("http") ? inlineUrl : `https://${inlineUrl}`,
       });
-      setIsEditOpen(false);
-      setEditingLink(null);
-      setTitle("");
-      setUrl("");
+      setInlineEditId(null);
       toast.success("링크가 수정되었습니다.");
     } catch (err) {
       toast.error("링크 수정 실패");
@@ -167,12 +169,7 @@ export default function Page() {
     }
   };
 
-  const openEditModal = (link: LinkItem) => {
-    setEditingLink(link);
-    setTitle(link.title);
-    setUrl(link.url);
-    setIsEditOpen(true);
-  };
+
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -344,32 +341,58 @@ export default function Page() {
                         {/* Hover background gradient effect */}
                         <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 translate-x-[-100%] group-hover:translate-x-[100%] ease-in-out pointer-events-none" />
                         
-                        <CardContent className="p-4 md:p-6 flex items-center justify-between relative z-10">
-                          <Link href={link.url} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center gap-4 md:gap-6 z-10">
-                            <div className="flex items-center justify-center w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-zinc-100/80 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-300 group-hover:bg-primary group-hover:text-primary-foreground group-hover:shadow-md transition-all duration-300 group-hover:scale-105">
-                              {link.icon && iconMap[link.icon] ? iconMap[link.icon] : <LinkIcon2 className="w-5 h-5" />}
+                        <CardContent className="p-4 md:p-6 flex items-center justify-between relative z-10 w-full">
+                          {inlineEditId === link.id ? (
+                            <div className="flex-1 flex flex-col gap-3 w-full">
+                              <div className="flex flex-col gap-2 w-full">
+                                <Input 
+                                  value={inlineTitle} 
+                                  onChange={(e) => setInlineTitle(e.target.value)} 
+                                  className="h-9 w-full bg-white/60 dark:bg-zinc-900/60 font-semibold" 
+                                  placeholder="링크 제목"
+                                  autoFocus
+                                />
+                                <Input 
+                                  value={inlineUrl} 
+                                  onChange={(e) => setInlineUrl(e.target.value)} 
+                                  className="h-8 w-full text-xs text-zinc-500 bg-white/60 dark:bg-zinc-900/60" 
+                                  placeholder="https://..."
+                                />
+                              </div>
+                              <div className="flex items-center justify-end gap-2 w-full">
+                                <Button size="sm" variant="ghost" onClick={() => setInlineEditId(null)} className="h-8 text-xs">취소</Button>
+                                <Button size="sm" onClick={() => handleInlineSave(link.id)} className="h-8 text-xs">저장</Button>
+                              </div>
                             </div>
-                            <span className="font-semibold text-base md:text-lg text-zinc-700 dark:text-zinc-200 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors">
-                              {link.title}
-                            </span>
-                          </Link>
+                          ) : (
+                            <>
+                              <Link href={link.url} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center gap-4 md:gap-6 z-10 min-w-0">
+                                <div className="flex shrink-0 items-center justify-center w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-zinc-100/80 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-300 group-hover:bg-primary group-hover:text-primary-foreground group-hover:shadow-md transition-all duration-300 group-hover:scale-105">
+                                  {link.icon && iconMap[link.icon] ? iconMap[link.icon] : <LinkIcon2 className="w-5 h-5" />}
+                                </div>
+                                <span className="font-semibold text-base md:text-lg text-zinc-700 dark:text-zinc-200 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors truncate">
+                                  {link.title}
+                                </span>
+                              </Link>
 
-                          {/* Edit/Delete Buttons & Arrow */}
-                          <div className="flex items-center gap-2 z-20">
-                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 mr-2">
-                              <Button variant="ghost" size="icon" onClick={(e) => { e.preventDefault(); openEditModal(link); }} className="h-9 w-9 text-zinc-500 hover:text-primary hover:bg-primary/10">
-                                <Pencil className="w-4 h-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon" onClick={(e) => { e.preventDefault(); handleDeleteLink(link.id); }} className="h-9 w-9 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50">
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                            
-                            {/* The beautiful right arrow */}
-                            <div className="w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 group-hover:bg-primary/10 group-hover:border-primary/20 transition-all duration-300 pointer-events-none">
-                              <ArrowRight className="w-5 h-5 text-zinc-400 dark:text-zinc-500 group-hover:text-primary transition-colors group-hover:translate-x-1 duration-300" />
-                            </div>
-                          </div>
+                              {/* Edit/Delete Buttons & Arrow */}
+                              <div className="flex items-center gap-2 z-20 shrink-0 ml-4">
+                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 mr-2">
+                                  <Button variant="ghost" size="icon" onClick={(e) => { e.preventDefault(); startInlineEdit(link); }} className="h-9 w-9 text-zinc-500 hover:text-primary hover:bg-primary/10">
+                                    <Pencil className="w-4 h-4" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" onClick={(e) => { e.preventDefault(); handleDeleteLink(link.id); }} className="h-9 w-9 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50">
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                                
+                                {/* The beautiful right arrow */}
+                                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 group-hover:bg-primary/10 group-hover:border-primary/20 transition-all duration-300 pointer-events-none">
+                                  <ArrowRight className="w-5 h-5 text-zinc-400 dark:text-zinc-500 group-hover:text-primary transition-colors group-hover:translate-x-1 duration-300" />
+                                </div>
+                              </div>
+                            </>
+                          )}
                         </CardContent>
                       </Card>
                     </div>
@@ -414,25 +437,7 @@ export default function Page() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Link Dialog */}
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>링크 수정</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleEditLink} className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <Label>제목 (Title)</Label>
-              <Input value={title} onChange={e => setTitle(e.target.value)} required />
-            </div>
-            <div className="space-y-2">
-              <Label>URL</Label>
-              <Input value={url} onChange={e => setUrl(e.target.value)} required />
-            </div>
-            <Button type="submit" className="w-full">저장하기</Button>
-          </form>
-        </DialogContent>
-      </Dialog>
+
 
       {/* Profile Edit Dialog */}
       <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
