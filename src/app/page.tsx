@@ -209,31 +209,54 @@ export default function Page() {
       {user ? (
         <>
           {/* Header for Mobile/Desktop */}
-          <div className="absolute top-4 right-4 z-50">
+          <div className="absolute top-4 right-4 z-50 flex items-center gap-3">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="hidden sm:flex items-center gap-2 font-medium bg-white/50 dark:bg-zinc-900/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 backdrop-blur-md border-zinc-200/60 dark:border-zinc-800/60 shadow-sm"
+              onClick={() => {
+                const urlUsername = profile?.username || (user.email ? user.email.split('@')[0] : "user");
+                window.open(`/${urlUsername}`, '_blank');
+              }}
+            >
+              <LinkIcon className="w-3.5 h-3.5" />
+              내 페이지 보기
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="rounded-full shadow-sm">
+                <Button variant="outline" size="icon" className="rounded-full shadow-sm bg-white/50 dark:bg-zinc-900/50 backdrop-blur-md border-zinc-200/60 dark:border-zinc-800/60 hover:ring-2 hover:ring-primary/50 transition-all">
                   <Avatar className="w-8 h-8 cursor-pointer">
                     <AvatarImage src={user.photoURL || undefined} />
-                    <AvatarFallback>{profile?.displayName?.charAt(0) || user.displayName?.charAt(0) || "U"}</AvatarFallback>
+                    <AvatarFallback className="font-bold text-zinc-700 dark:text-zinc-300">
+                      {profile?.displayName?.charAt(0) || user.displayName?.charAt(0) || "U"}
+                    </AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>내 계정</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setIsProfileOpen(true)} className="cursor-pointer">
+              <DropdownMenuContent align="end" className="w-56 mt-1 rounded-xl shadow-xl border-zinc-200/60 dark:border-zinc-800/60 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl">
+                <DropdownMenuLabel className="flex flex-col gap-1.5 p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-sm truncate pr-2 text-zinc-900 dark:text-zinc-100">
+                      {profile?.displayName || user.displayName || "User"}
+                    </span>
+                  </div>
+                  <span className="text-xs text-zinc-500 font-medium truncate">
+                    {user.email}
+                  </span>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-zinc-200/60 dark:bg-zinc-800/60" />
+                <DropdownMenuItem onClick={() => setIsProfileOpen(true)} className="cursor-pointer py-2.5 focus:bg-zinc-100 dark:focus:bg-zinc-800 rounded-md m-1">
                   <Settings className="w-4 h-4 mr-2" />
                   프로필 편집
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild className="cursor-pointer">
+                <DropdownMenuItem asChild className="cursor-pointer py-2.5 focus:bg-zinc-100 dark:focus:bg-zinc-800 rounded-md m-1">
                   <Link href="/stats">
                     <ChartBar className="w-4 h-4 mr-2" />
                     통계 대시보드
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-500 focus:text-red-500">
+                <DropdownMenuSeparator className="bg-zinc-200/60 dark:bg-zinc-800/60" />
+                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer py-2.5 text-red-500 focus:text-red-500 focus:bg-red-50 dark:focus:bg-red-950/50 rounded-md m-1">
                   <LogOut className="w-4 h-4 mr-2" />
                   로그아웃
                 </DropdownMenuItem>
