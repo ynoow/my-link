@@ -275,15 +275,13 @@ export default function Page() {
               내 페이지 보기
             </Button>
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="rounded-full shadow-sm bg-white/50 dark:bg-zinc-900/50 backdrop-blur-md border-zinc-200/60 dark:border-zinc-800/60 hover:ring-2 hover:ring-primary/50 transition-all">
-                  <Avatar className="w-8 h-8 cursor-pointer">
-                    <AvatarImage src={user.photoURL || undefined} />
-                    <AvatarFallback className="font-bold text-zinc-700 dark:text-zinc-300">
-                      {profile?.displayName?.charAt(0) || user.displayName?.charAt(0) || "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
+              <DropdownMenuTrigger className="flex h-10 w-10 items-center justify-center rounded-full shadow-sm bg-white/50 dark:bg-zinc-900/50 backdrop-blur-md border border-zinc-200/60 dark:border-zinc-800/60 hover:ring-2 hover:ring-primary/50 transition-all outline-none cursor-pointer">
+                <Avatar className="w-8 h-8">
+                  <AvatarImage src={user.photoURL || undefined} />
+                  <AvatarFallback className="font-bold text-zinc-700 dark:text-zinc-300">
+                    {profile?.displayName?.charAt(0) || user.displayName?.charAt(0) || "U"}
+                  </AvatarFallback>
+                </Avatar>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 mt-1 rounded-xl shadow-xl border-zinc-200/60 dark:border-zinc-800/60 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl">
                 <DropdownMenuLabel className="flex flex-col gap-1.5 p-3">
@@ -301,11 +299,9 @@ export default function Page() {
                   <Settings className="w-4 h-4 mr-2" />
                   프로필 편집
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild className="cursor-pointer py-2.5 focus:bg-zinc-100 dark:focus:bg-zinc-800 rounded-md m-1">
-                  <Link href="/stats">
-                    <ChartBar className="w-4 h-4 mr-2" />
-                    통계 대시보드
-                  </Link>
+                <DropdownMenuItem onClick={() => window.location.href = "/stats"} className="cursor-pointer py-2.5 focus:bg-zinc-100 dark:focus:bg-zinc-800 rounded-md m-1">
+                  <ChartBar className="w-4 h-4 mr-2" />
+                  통계 대시보드
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="bg-zinc-200/60 dark:bg-zinc-800/60" />
                 <DropdownMenuItem onClick={handleLogout} className="cursor-pointer py-2.5 text-red-500 focus:text-red-500 focus:bg-red-50 dark:focus:bg-red-950/50 rounded-md m-1">
