@@ -243,8 +243,11 @@ export default function Page() {
 
           {/* Left Column: Fixed Profile Section */}
           <div className="w-full md:w-[350px] lg:w-[420px] md:h-screen md:sticky top-0 bg-white dark:bg-zinc-900 border-b md:border-b-0 md:border-r border-zinc-200 dark:border-zinc-800 flex flex-col justify-center p-8 md:p-12 relative overflow-hidden z-10 shadow-sm md:shadow-none">
+            {/* Subtle decorative background gradient */}
             <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-br from-primary/10 to-transparent opacity-50 pointer-events-none -z-10" />
+
             <div className="space-y-8">
+              {/* Avatar Profile */}
               <div className="relative inline-block">
                 <div className="w-28 h-28 md:w-32 md:h-32 rounded-full bg-gradient-to-tr from-primary/80 to-primary/20 p-[3px] shadow-lg shadow-primary/20">
                   <div className="w-full h-full rounded-full bg-white dark:bg-zinc-950 flex items-center justify-center overflow-hidden border-[3px] border-white dark:border-zinc-950">
@@ -255,7 +258,11 @@ export default function Page() {
                     )}
                   </div>
                 </div>
+                {/* Status indicator */}
+                <div className="absolute bottom-2 right-2 md:bottom-3 md:right-3 w-5 h-5 md:w-6 md:h-6 bg-green-500 border-4 border-white dark:border-zinc-900 rounded-full shadow-sm"></div>
               </div>
+
+              {/* Profile Text */}
               <div className="space-y-3">
                 <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">
                   {profile?.displayName || user.displayName || "User"}
@@ -263,12 +270,18 @@ export default function Page() {
                 <p className="text-lg text-primary font-medium flex items-center gap-1.5">
                   @{profile?.username || user.email?.split('@')[0]}
                 </p>
-                <p className="text-base text-zinc-600 dark:text-zinc-400 leading-relaxed max-w-sm mt-4">
+                <p className="text-base md:text-lg text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed max-w-xs mt-4">
                   {profile?.bio || "나를 소개하는 한 줄을 작성해보세요."}
                 </p>
                 
-                <div className="pt-4">
-                  <Button onClick={handleCopyLink} variant="outline" className="gap-2 rounded-full shadow-sm w-full md:w-auto">
+                <div className="pt-4 flex flex-col gap-3">
+                  <div className="flex items-center gap-3 text-sm text-zinc-500 dark:text-zinc-400 font-medium">
+                    <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300">
+                      <MapPin className="w-4 h-4" />
+                    </div>
+                    <span>Seoul, South Korea</span>
+                  </div>
+                  <Button onClick={handleCopyLink} variant="outline" className="gap-2 rounded-full shadow-sm w-full md:w-auto mt-2">
                     <Copy className="w-4 h-4" />
                     내 링크 복사하기
                   </Button>
@@ -277,42 +290,60 @@ export default function Page() {
             </div>
           </div>
 
-          {/* Right Column: Links List */}
-          <div className="flex-1 p-6 md:p-12 lg:p-20 overflow-y-auto">
-            <div className="max-w-3xl mx-auto">
-              <div className="flex items-center justify-between mb-10">
-                <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">내 링크</h2>
-                <Button onClick={() => { setIsAddOpen(true); setTitle(""); setUrl(""); }} className="gap-2 shadow-sm rounded-full px-6">
+          {/* Right Column: Scrollable Link List */}
+          <div className="flex-1 w-full bg-zinc-50/50 dark:bg-zinc-950/80 relative overflow-y-auto">
+            {/* Decorative mesh gradient on the right side */}
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/5 via-transparent to-transparent pointer-events-none" />
+
+            <div className="max-w-3xl mx-auto p-6 md:p-12 lg:p-20 md:py-24 space-y-10 md:space-y-12 relative z-10">
+              <div className="flex items-center justify-between">
+                <div className="space-y-3">
+                  <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">내 링크</h2>
+                  <p className="text-sm md:text-base text-zinc-500 dark:text-zinc-400 font-medium">Explore my content, portfolio, and social profiles.</p>
+                </div>
+                <Button onClick={() => { setIsAddOpen(true); setTitle(""); setUrl(""); }} className="gap-2 shadow-sm rounded-full shrink-0">
                   <Plus className="w-4 h-4" />
                   링크 추가
                 </Button>
               </div>
 
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-4 md:gap-5">
                 {links.length === 0 ? (
                   <div className="text-center py-20 text-zinc-500">
                     추가된 링크가 없습니다.
                   </div>
                 ) : (
                   links.map((link) => (
-                    <div key={link.id} className="group relative">
-                      <Card className="relative overflow-hidden transition-all duration-300 hover:shadow-md border-zinc-200/60 dark:border-zinc-800/60 bg-white/70 dark:bg-zinc-900/60">
-                        <CardContent className="p-4 md:p-5 flex items-center justify-between">
-                          <Link href={link.url} target="_blank" className="flex-1 flex items-center gap-4">
-                            <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                    <div key={link.id} className="group relative block outline-none rounded-2xl">
+                      <Card className="relative overflow-hidden transition-all duration-500 hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/10 border-zinc-200/60 dark:border-zinc-800/60 group-hover:border-primary/40 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl">
+                        {/* Hover background gradient effect */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 translate-x-[-100%] group-hover:translate-x-[100%] ease-in-out pointer-events-none" />
+                        
+                        <CardContent className="p-4 md:p-6 flex items-center justify-between relative z-10">
+                          <Link href={link.url} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center gap-4 md:gap-6 z-10">
+                            <div className="flex items-center justify-center w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-zinc-100/80 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-300 group-hover:bg-primary group-hover:text-primary-foreground group-hover:shadow-md transition-all duration-300 group-hover:scale-105">
                               {link.icon && iconMap[link.icon] ? iconMap[link.icon] : <LinkIcon2 className="w-5 h-5" />}
                             </div>
-                            <span className="font-semibold text-lg text-zinc-700 dark:text-zinc-200 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors">
+                            <span className="font-semibold text-base md:text-lg text-zinc-700 dark:text-zinc-200 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors">
                               {link.title}
                             </span>
                           </Link>
-                          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button variant="ghost" size="icon" onClick={() => openEditModal(link)} className="h-9 w-9 text-zinc-500 hover:text-primary hover:bg-primary/10">
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDeleteLink(link.id)} className="h-9 w-9 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50">
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+
+                          {/* Edit/Delete Buttons & Arrow */}
+                          <div className="flex items-center gap-2 z-20">
+                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 mr-2">
+                              <Button variant="ghost" size="icon" onClick={(e) => { e.preventDefault(); openEditModal(link); }} className="h-9 w-9 text-zinc-500 hover:text-primary hover:bg-primary/10">
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={(e) => { e.preventDefault(); handleDeleteLink(link.id); }} className="h-9 w-9 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50">
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                            
+                            {/* The beautiful right arrow */}
+                            <div className="w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 group-hover:bg-primary/10 group-hover:border-primary/20 transition-all duration-300 pointer-events-none">
+                              <ArrowRight className="w-5 h-5 text-zinc-400 dark:text-zinc-500 group-hover:text-primary transition-colors group-hover:translate-x-1 duration-300" />
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
